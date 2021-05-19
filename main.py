@@ -169,14 +169,9 @@ countries = [
 
 
 def take_screenshot():
-    # img = pyautogui.screenshot(region=(350, 270, 975, 620))  # region (x, y, width, height)
-
-    img = pyautogui.screenshot(region=(460, 100, 850, 50))  # region (x, y, width, height)
+    img = pyautogui.screenshot(region=(460, 100, 850, 50))
     img = cv2.cvtColor(np.array(img.getdata(), dtype='uint8').reshape((img.size[1], img.size[0], 3)),
                        cv2.COLOR_BGR2GRAY)
-    # cv2.imshow('image', img)
-    # cv2.waitKey(0)
-
     return img
 
 
@@ -188,12 +183,9 @@ def find_patt(image, pattern, thres):
 
 
 def play(patterns):
-    # pyautogui.moveTo(800, 760)  # init cursor position
     sleep(0.005)
     img = take_screenshot()
     for patt in patterns:
-        if len(patt[1]) == 0:
-            continue
         p_img = cv2.imread(patt[1], 0)
         h, w, points = find_patt(img, p_img, 0.92)
         if len(points[0]) != 0:
