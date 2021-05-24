@@ -1,8 +1,8 @@
 """
 The script with bot for online game 'Seterra'.
 
-:Author YeslieSnayder
-:Version 1.3
+:Author: YeslieSnayder
+:Version: 1.3
 """
 
 import sys
@@ -40,10 +40,9 @@ class SeterraGame:
         elif mode == Mode.COUNTRIES_150:
             self._site = config['DEFAULT'].get('site_countries')
             file_name = config['DEFAULT'].get('countries_file')
-        self._elements = self._get_elements(file_name)
+        self._elements = self._init_elements(file_name)
 
-    def _get_elements(self, file):
-        elem = {}
+    def _init_elements(self, file):
         if self._language == 'en':
             uid = 2
         elif self._language == 'ru':
@@ -51,6 +50,7 @@ class SeterraGame:
         else:
             raise Exception("No such language: " + self._language)
 
+        elem = {}
         with open(file, 'r') as f:
             reader = csv.reader(f)
             for row in reader:
@@ -67,33 +67,48 @@ class SeterraGame:
         return elem
 
     def play(self):
-        history = []
         with webdriver.Chrome(executable_path=self._driver_file) as driver:
             print('Loading page...')
             driver.get(self._site)
+
+            # Remove ads
+            driver.execute_script("""
+            var element = document.getElementById(\"mainbanner\");element.remove();
+            var element = document.getElementById(\"panGameList\");element.remove();
+            var element = document.getElementById(\"divAd_Panorama1\");
+            if (element)
+                element.remove();
+            """)
+
             print('Start game!')
+            history = []
             try:
                 driver.find_element_by_id('cmdRestart').click()
                 while True:
                     question = driver.find_element_by_id('currQuestion').text[9:]
                     if question == '':
                         break
+
                     history.append(question)
                     element_id = self._elements[question]
                     element = driver.find_element_by_id(element_id[0])
-                    if len(element_id) > 3:  # if element has the 'offset' parameter
-                        el = webdriver.ActionChains(driver).move_to_element(element)
-                        el.move_by_offset(element_id[-2], element_id[-1])
-                        el.click().perform()
+                    # if element has the 'offset' parameter
+                    if len(element_id) > 3:
+                        webdriver.ActionChains(driver).move_to_element(element)\
+                            .move_by_offset(element_id[-2], element_id[-1])\
+                            .click().perform()
                     else:
                         element.click()
+
                 result = driver.find_element_by_id('lblFinalScore2').text
-                progress = 'Progress: {}, Time: {} сек.\n'.format(result[:5].strip(), result[5:].strip())
+                progress = 'Progress: {}, Time: {}\n'.format(result[:5].strip(), result[5:].strip())
                 history.insert(0, progress)
-            except NoSuchElementException:  # the algorithm has done
+            except NoSuchElementException:
                 driver.implicitly_wait(1000)
+            finally:
+                self.write_history(history)
+
             input('Press \'Enter\' to exit the program!')
-        self.write_history(history)
 
     def write_history(self, arr: list):
         with open(self._history_file, 'w') as file:
