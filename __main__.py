@@ -69,7 +69,9 @@ class SeterraGame:
     def play(self):
         history = []
         with webdriver.Chrome(executable_path=self._driver_file) as driver:
+            print('Loading page...')
             driver.get(self._site)
+            print('Start game!')
             try:
                 driver.find_element_by_id('cmdRestart').click()
                 while True:
@@ -85,11 +87,12 @@ class SeterraGame:
                         el.click().perform()
                     else:
                         element.click()
-                    driver.implicitly_wait(10)
+                result = driver.find_element_by_id('lblFinalScore2').text
+                progress = 'Progress: {}, Time: {} сек.\n'.format(result[:5].strip(), result[5:].strip())
+                history.insert(0, progress)
             except NoSuchElementException:  # the algorithm has done
                 driver.implicitly_wait(1000)
             input('Press \'Enter\' to exit the program!')
-        history.insert(0, 'something')
         self.write_history(history)
 
     def write_history(self, arr: list):
