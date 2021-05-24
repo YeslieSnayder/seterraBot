@@ -1,0 +1,7 @@
+id,mark,name_en,name_ru,offset_x,offset_y
+0,AREA_OCEANIA,Australia,Австралия,,
+1,AREA_ASIA,Asia,Азия,,
+2,AREA_AFRICA,Africa,Африка,,
+3,AREA_EUROPE,Europe,Европа,40,10
+4,AREA_NORTHAMERICA,North America,Северная Америка,,
+5,AREA_SOUTHAMERICA,South America,Южная Америка,,

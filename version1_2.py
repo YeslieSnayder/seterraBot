@@ -2,16 +2,17 @@
 The script with bot for online game 'Seterra'.
 
 :Author YeslieSnayder
-:Version 1.2
+:Version 1.3
 """
 
 import sys
-import configparser
-
-from selenium.common.exceptions import NoSuchElementException
-from selenium import webdriver
-
+import csv
 from enum import Enum
+from configparser import ConfigParser
+import keyboard
+
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 
 
 # site_continents = 'https://online.seterra.com/ru/vgp/3111'
@@ -34,57 +35,93 @@ class Mode(Enum):
     COUNTRIES_150 = 1
 
 
+def get_elements(file, language: str):
+    elem = {}
+    if language == 'en':
+        uid = 2
+    elif language == 'ru':
+        uid = 3
+    else:
+        raise Exception("No such language: " + language)
+
+    with open(file, 'r') as f:
+        reader = csv.reader(f)
+        for row in reader:
+            if row[0] == 'id':
+                continue
+            if row[-2] == '' and row[-1] == '':
+                elem[row[uid]] = (row[1], row[2], row[3])
+            elif row[-2] == '':
+                elem[row[uid]] = (row[1], row[2], row[3], 0, int(row[-1]))
+            elif row[-1] == '':
+                elem[row[uid]] = (row[1], row[2], row[3], int(row[-2]), 0)
+            else:
+                elem[row[uid]] = (row[1], row[2], row[3], int(row[-2]), int(row[-1]))
+    return elem
+
+
 class SeterraGame:
-    driver_file = r'driver/chromedriver'    # file for browser driver
-    config_file = 'config.ini'              # file with configuration of the game
-    history_file = 'log/history.log'        # file for history of the last game
+    config_file = '../config.ini'   # file with configuration of the application
 
     def __init__(self, mode: Mode):
         self.mode = mode
-        self.elements = []
 
-        config = configparser.ConfigParser()
-        config.read(self.config_file)
-        print(config.sections())
+        config = ConfigParser()
+        if not config.read(self.config_file):
+            raise ConfigError("Config file is empty")
 
-        if len(config.sections()) == 0:
-            raise ConfigError("File ")
+        self._language = config['DEFAULT'].get('language')
+        self._driver_file = config['DEFAULT'].get('driver_file')
+        self._history_file = config['DEFAULT'].get('history_file')
 
-        self._history_file = config['DEFAULT'].get('history_path')
+        file_name = ''
         if mode == Mode.CONTINENTS:
             self._site = config['DEFAULT'].get('site_continents')
-            for key in list(config.items('CONTINENTS')):
-                self.elements.append(key)
-            print(self.elements)
-
-    def get_id(self, question: str):
-        for i in range(len(self.elements)):
-            if question == self.elements[i][0]:
-                return self.elements[i]
-        return None
+            file_name = config['DEFAULT'].get('continents_file')
+        elif mode == Mode.COUNTRIES_150:
+            # TODO: add category for 150 countries
+            pass
+        self._elements = get_elements(file_name, self._language)
 
     def play(self):
         history = []
-        with webdriver.Chrome(executable_path=self.driver_file) as driver:
+        with webdriver.Chrome(executable_path=self._driver_file) as driver:
             driver.get(self._site)
+            print('Please, press \'s\' to start a SeterraBot')
+            while True:
+                try:
+                    if keyboard.is_pressed('s'):
+                        break
+                except:
+                    break
             try:
-                for i in range(300):
-                    question = driver.find_element_by_id('currQuestion').text[9:]
-                    history.append(question)
-                    element_id = self.get_id(question)
-                    if element_id is None:
+                while True:
+                    if keyboard.is_pressed('b'):
                         break
 
-                    element = driver.find_element_by_id(element_id[1])
-                    if len(element_id) > 2:  # if element has the 'offset' parameter
+                    question = driver.find_element_by_id('currQuestion').text[9:]
+                    if question == '':
+                        break
+                    history.append(question)
+                    element_id = self._elements[question]
+                    element = driver.find_element_by_id(element_id[0])
+                    if len(element_id) > 3:  # if element has the 'offset' parameter
                         el = webdriver.ActionChains(driver).move_to_element(element)
-                        el.move_by_offset(element_id[2], element_id[3])
+                        el.move_by_offset(element_id[-2], element_id[-1])
                         el.click().perform()
                     else:
                         element.click()
                     driver.implicitly_wait(10)
             except NoSuchElementException:  # the algorithm has done
                 driver.implicitly_wait(1000)
+
+            print('Please, press \'b\' on a keyboard to break the program!')
+            while True:
+                try:
+                    if keyboard.is_pressed('b'):
+                        break
+                except:
+                    break
         self.write_history(history)
 
     def write_history(self, arr: list):
@@ -96,7 +133,7 @@ class SeterraGame:
 def main(argv: list):
     mode = Mode.CONTINENTS
     if len(argv) > 1:
-        if argv[0] == '-m' or argv[1] == '--mode':
+        if argv[0] == '-m' or argv[0] == '--mode':
             if argv[1] is str and argv[1] == 'continents' or argv[1] is int and argv[1] == 0:
                 mode = Mode.CONTINENTS
             elif argv[1] is str and argv[1] == 'countries' or argv[1] is int and argv[1] == 1:
@@ -104,9 +141,7 @@ def main(argv: list):
             else:
                 raise Exception("Incorrect params!")
     game = SeterraGame(mode)
-    # game.play()
-    for el in game.elements:
-        print(el)
+    game.play()
 
 
 if __name__ == '__main__':
