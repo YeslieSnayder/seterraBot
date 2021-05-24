@@ -9,25 +9,9 @@ import sys
 import csv
 from enum import Enum
 from configparser import ConfigParser
-import keyboard
 
 from selenium import webdriver
 from selenium.common.exceptions import NoSuchElementException
-
-
-# site_continents = 'https://online.seterra.com/ru/vgp/3111'
-# continents = [
-#     ('Австралия', 'Australia', 'AREA_OCEANIA'),
-#     ('Азия', 'Asia', 'AREA_ASIA'),
-#     ('Африка', 'Africa', 'AREA_AFRICA'),
-#     ('Европа', 'Europe', 'AREA_EUROPE', 40, 10),
-#     ('Северная Америка', 'North America', 'AREA_NORTHAMERICA'),
-#     ('Южная Америка', 'South America', 'AREA_SOUTHAMERICA')
-# ]
-
-
-class ConfigError(Exception):
-    pass
 
 
 class Mode(Enum):
@@ -35,40 +19,15 @@ class Mode(Enum):
     COUNTRIES_150 = 1
 
 
-def get_elements(file, language: str):
-    elem = {}
-    if language == 'en':
-        uid = 2
-    elif language == 'ru':
-        uid = 3
-    else:
-        raise Exception("No such language: " + language)
-
-    with open(file, 'r') as f:
-        reader = csv.reader(f)
-        for row in reader:
-            if row[0] == 'id':
-                continue
-            if row[-2] == '' and row[-1] == '':
-                elem[row[uid]] = (row[1], row[2], row[3])
-            elif row[-2] == '':
-                elem[row[uid]] = (row[1], row[2], row[3], 0, int(row[-1]))
-            elif row[-1] == '':
-                elem[row[uid]] = (row[1], row[2], row[3], int(row[-2]), 0)
-            else:
-                elem[row[uid]] = (row[1], row[2], row[3], int(row[-2]), int(row[-1]))
-    return elem
-
-
 class SeterraGame:
-    config_file = '../config.ini'   # file with configuration of the application
+    config_file = 'config.ini'   # file with configuration of the application
 
     def __init__(self, mode: Mode):
         self.mode = mode
 
         config = ConfigParser()
         if not config.read(self.config_file):
-            raise ConfigError("Config file is empty")
+            raise Exception("Config file is empty")
 
         self._language = config['DEFAULT'].get('language')
         self._driver_file = config['DEFAULT'].get('driver_file')
@@ -81,24 +40,39 @@ class SeterraGame:
         elif mode == Mode.COUNTRIES_150:
             # TODO: add category for 150 countries
             pass
-        self._elements = get_elements(file_name, self._language)
+        self._elements = self._get_elements(file_name)
+
+    def _get_elements(self, file):
+        elem = {}
+        if self._language == 'en':
+            uid = 2
+        elif self._language == 'ru':
+            uid = 3
+        else:
+            raise Exception("No such language: " + self._language)
+
+        with open(file, 'r') as f:
+            reader = csv.reader(f)
+            for row in reader:
+                if row[0] == 'id':
+                    continue
+                if row[-2] == '' and row[-1] == '':
+                    elem[row[uid]] = (row[1], row[2], row[3])
+                elif row[-2] == '':
+                    elem[row[uid]] = (row[1], row[2], row[3], 0, int(row[-1]))
+                elif row[-1] == '':
+                    elem[row[uid]] = (row[1], row[2], row[3], int(row[-2]), 0)
+                else:
+                    elem[row[uid]] = (row[1], row[2], row[3], int(row[-2]), int(row[-1]))
+        return elem
 
     def play(self):
         history = []
         with webdriver.Chrome(executable_path=self._driver_file) as driver:
             driver.get(self._site)
-            print('Please, press \'s\' to start a SeterraBot')
-            while True:
-                try:
-                    if keyboard.is_pressed('s'):
-                        break
-                except:
-                    break
             try:
+                driver.find_element_by_id('cmdRestart').click()
                 while True:
-                    if keyboard.is_pressed('b'):
-                        break
-
                     question = driver.find_element_by_id('currQuestion').text[9:]
                     if question == '':
                         break
@@ -114,14 +88,8 @@ class SeterraGame:
                     driver.implicitly_wait(10)
             except NoSuchElementException:  # the algorithm has done
                 driver.implicitly_wait(1000)
-
-            print('Please, press \'b\' on a keyboard to break the program!')
-            while True:
-                try:
-                    if keyboard.is_pressed('b'):
-                        break
-                except:
-                    break
+            input('Press \'Enter\' to exit the program!')
+        history.insert(0, 'something')
         self.write_history(history)
 
     def write_history(self, arr: list):
