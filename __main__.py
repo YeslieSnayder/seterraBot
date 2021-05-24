@@ -105,9 +105,9 @@ def main(argv: list):
     mode = Mode.CONTINENTS
     if len(argv) > 1:
         if argv[0] == '-m' or argv[0] == '--mode':
-            if argv[1] is str and argv[1] == 'continents' or argv[1] is int and argv[1] == 0:
+            if argv[1] == 'continents' or argv[1] == '0':
                 mode = Mode.CONTINENTS
-            elif argv[1] is str and argv[1] == 'countries' or argv[1] is int and argv[1] == 1:
+            elif argv[1] == 'countries' or argv[1] == '1':
                 mode = Mode.COUNTRIES_150
             else:
                 raise Exception("Incorrect params!")
