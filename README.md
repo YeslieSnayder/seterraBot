@@ -8,7 +8,6 @@
       - [Countries](#countries)
    - [Config](#config)
       - [Available languages](#available-languages)
-   - [Libraries](#libraries)
 - [Installation](#installation)
 - [Contacts](#contacts)
 
