@@ -38,8 +38,8 @@ class SeterraGame:
             self._site = config['DEFAULT'].get('site_continents')
             file_name = config['DEFAULT'].get('continents_file')
         elif mode == Mode.COUNTRIES_150:
-            # TODO: add category for 150 countries
-            pass
+            self._site = config['DEFAULT'].get('site_countries')
+            file_name = config['DEFAULT'].get('countries_file')
         self._elements = self._get_elements(file_name)
 
     def _get_elements(self, file):
